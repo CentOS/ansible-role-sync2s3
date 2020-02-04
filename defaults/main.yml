@@ -1,1 +1,27 @@
 # Defaults variables for role sync2s3
+# This role can be used to create a cron job that will sync local paths to S3
+# You'll need AWS credentials with IAM policy allowing you to push to S3 bucket[s]
+
+sync2s3_local_user:
+sync2s3_log_dir: /var/log/sync2s3
+sync2s3_aws_access_key_id:
+sync2s3_aws_secret_access_key:
+
+#sync2s3_list:
+#  - name: my push
+#    local_path: /home/path/ 
+#    s3_path: s3://bucket/path/
+#    options: ''
+
+sync2s3_list: []
+
+# When to run the script through cron, default values
+sync2s3_cron_hour: "*"
+sync2s3_cron_minute: "*/15"
+
+# Zabbix/monitoring part
+zabbix_sync2s3_templates:
+  - Template CentOS sync2s3
+zabbix_sync2s3_groups:
+  - CentOS sync2s3 nodes
+

@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# Some variables
+log_file="{{ sync2s3_log_dir }}/sync-to-s3.log"
+lock_file="/var/tmp/sync-to-s3.lck"
+
+# Functions
+f_log() {
+   echo "[+] $(date +%Y%m%d-%H:%M) S3-push -> $*" >>$log_file
+}
+
+f_check() {
+  if [ "$?" -ne "0" ] ;then
+    f_log "ERROR, exiting .. check log"
+    /bin/rm ${lock_file}
+    zabbix_sender -c /etc/zabbix/zabbix_agentd.conf -k sync2s3.status -o 1 >/dev/null
+    exit 1
+  else
+    zabbix_sender -c /etc/zabbix/zabbix_agentd.conf -k sync2s3.status -o 0 >/dev/null
+  fi
+}
+
+
+# Beginning of script
+if [ -e ${lock_file} ] ; then
+  f_log "${lock_file} still there so other sync in progress ..."
+  f_log "Exiting ..."
+  exit
+fi
+
+f_log "=== Starting new S3 mirror sync ==="
+touch ${lock_file}
+f_check
+
+# Ansible loop for items defined in sync2s3_list
+{% for config in sync2s3_list %}
+f_log "Verifying we can reach AWS S3 bucket ..."
+bucket=$(echo {{ config.s3_path}} |cut -f 3 -d '/')
+aws s3 ls ${bucket} 2>&1 >>$log_file
+f_check
+f_log "= Starting job {{ config.name }} ="
+f_log "Pushing content from {{ config.local_path }} to {{ config.s3_path }}"
+{% if config.options is defined %}
+aws s3 sync {{ config.local_path }} {{ config.s3_path }} --no-progress {{ config.options }} 2>&1 >>$log_file
+{% else %}
+aws s3 sync {{ config.local_path }} {{ config.s3_path }} --no-progress 2>&1 >>$log_file
+{% endif %}
+f_check
+{% endfor %}
+
+f_log "Finished syncing to S3 ..."
+/bin/rm ${lock_file}
+

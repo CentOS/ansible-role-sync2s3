@@ -1,1 +1,49 @@
 # Defaults tasks for role sync2s3
+
+- name: Ensuring that we have awscli pkg installed
+  yum:
+    name: awscli
+    state: latest
+
+- name: Ensuring that we have local user
+  user:
+    name: "{{ sync2s3_local_user }}"
+    state: present
+ 
+- name: Local aws config dir
+  file:
+    path: "/home/{{ sync2s3_local_user }}/.aws"
+    state: directory
+    owner: "{{ sync2s3_local_user }}"
+    group: "{{ sync2s3_local_user }}"
+    mode: 0700
+
+- name: Ensuring log directory
+  file:
+    path: "{{ sync2s3_log_dir }}"
+    state: directory
+    owner: "{{ sync2s3_local_user }}"
+    group: "{{ sync2s3_local_user }}"
+    mode: 0755
+
+- name: AWS creds
+  template:
+    src: credentials.j2
+    dest: "/home/{{ sync2s3_local_user }}/.aws/credentials"
+
+- name: Sync script
+  template:
+    src: sync-to-s3.j2
+    dest: "/usr/libexec/centos/sync-to-s3"
+    mode: 0750
+    owner: "{{ sync2s3_local_user }}"
+
+- name: Cron job for s3sync
+  cron:
+    name: "CentOS sync to S3"
+    job: /usr/libexec/centos/sync-to-s3
+    user: "{{ sync2s3_local_user }}"
+    hour: "{{ sync2s3_cron_hour }}"
+    minute: "{{ sync2s3_cron_minute }}"
+
+- include_tasks: monitoring.yml
