@@ -36,14 +36,14 @@ f_check
 {% for config in sync2s3_list %}
 f_log "Verifying we can reach AWS S3 bucket ..."
 bucket=$(echo {{ config.s3_path}} |cut -f 3 -d '/')
-aws s3 ls ${bucket} 2>&1 >>$log_file
+aws s3 ls ${bucket} >>$log_file 2>&1
 f_check
 f_log "= Starting job {{ config.name }} ="
 f_log "Pushing content from {{ config.local_path }} to {{ config.s3_path }}"
 {% if config.options is defined %}
-aws s3 sync {{ config.local_path }} {{ config.s3_path }} --no-progress {{ config.options }} 2>&1 >>$log_file
+aws s3 sync {{ config.local_path }} {{ config.s3_path }} --no-progress {{ config.options }} >>$log_file 2>&1
 {% else %}
-aws s3 sync {{ config.local_path }} {{ config.s3_path }} --no-progress 2>&1 >>$log_file
+aws s3 sync {{ config.local_path }} {{ config.s3_path }} --no-progress >>$log_file 2>&1
 {% endif %}
 f_check
 {% endfor %}
