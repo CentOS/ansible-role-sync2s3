@@ -24,6 +24,13 @@ f_check() {
 # Beginning of script
 if [ -e ${lock_file} ] ; then
   f_log "${lock_file} still there so other sync in progress ..."
+  last_access=$(/usr/bin/stat --format %X ${lock_file})
+  now_epoch=$(date +%s)
+  time_diff=$(( ${now_epoch} - ${last_access}))
+  if [ ${time_diff} -gt "7200" ] ;then
+    zabbix_sender -c /etc/zabbix/zabbix_agentd.conf -k sync2s3.status -o 1 >/dev/null 2>&1
+    f_log "Backup stuck for more than 2 hours - alerting through zabbix" 
+  fi
   f_log "Exiting ..."
   exit
 fi
